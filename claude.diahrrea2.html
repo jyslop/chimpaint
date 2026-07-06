@@ -472,11 +472,15 @@
 		}
 
 		// ── Compute effective latent for single-tile mode ──
-		function getEffectiveLatentSingle() {
-			return currentLatent.map((v, i) =>
-				Math.max(-3.5, Math.min(3.5, v + globalLatentOffset[i]))
-			);
-		}
+		function getEffectiveLatent(tile, row, col) {
+    let key = `${row}_${col}`;
+    let perTile = tileLatentOffsets[key] || new Array(16).fill(0);
+    return tile.latent.map((v, i) =>
+        Math.max(-3.5, Math.min(3.5,
+            v + globalLatentOffset[i] + tile.tileOffset[i] + perTile[i]
+        ))
+    );
+}
 		
 		encoder.fromJSON(generalNet["encoder"]);
 		decoder.fromJSON(generalNet["decoder"]);
@@ -549,10 +553,12 @@
 					tileLatentOffsets[`${row}_${col}`] = new Array(16).fill(0);
 
 					tileGrid[row][col] = {
-						canvas: tc,
-						ctx: tc.getContext('2d'),
-						tileOffset: tileOffset
-					};
+    canvas: tc,
+    ctx: tc.getContext('2d'),
+    tileOffset: tileOffset,
+    latent: currentLatent.length ? [...currentLatent] : new Array(16).fill(0).map(()=>(Math.random()-0.5)*2),
+    velocity: new Array(16).fill(0)
+};
 				}
 			}
 
@@ -572,9 +578,10 @@
 					d[j++] = 255;
 				}
 			} else {
-				let effectiveLatent = (row !== undefined && col !== undefined)
-					? getEffectiveLatent(tile, row, col)
-					: currentLatent.map((v, i) => Math.max(-3.5, Math.min(3.5, v + tile.tileOffset[i])));
+				 let base = tile.latent || currentLatent;
+    let effectiveLatent = (row !== undefined && col !== undefined)
+        ? getEffectiveLatent(tile, row, col)
+        : base.map((v, i) => Math.max(-3.5, Math.min(3.5, v + tile.tileOffset[i])));
 				let decoded = arrayify(decoder.run(effectiveLatent));
 				let j = 0;
 				for(let i = 0; i < decoded.length; i += 3){
@@ -652,40 +659,50 @@
 			drawLatentWithOffset(latentSpace);
 		}
 
-		function computeAcceleration() {
-			let acc = new Array(16).fill(0);
-			noiseOffset += 0.02;
+	function computeAcceleration(latentVec) {
+    let acc = new Array(16).fill(0);
+    for(let i = 0; i < 16; i++){
+        let a = 0;
+        let dimWeight = dimWeights[i];
+        let stabilityFactor = i < 4 ? structureStability : 0;
 
-			for(let i = 0; i < 16; i++){
-				let a = 0;
-				let dimWeight = dimWeights[i];
-				let stabilityFactor = i < 4 ? structureStability : 0;
+        switch(motionMode) {
+            case 'smooth':
+                a = (Math.random() - 0.5) * frameChange * 0.15 * dimWeight;
+                break;
+            case 'organic':
+                let noiseVal = noise1D(i * 0.5 + noiseOffset) * 2 - 1;
+                a = noiseVal * frameChange * 0.2 * dimWeight;
+                break;
+            case 'directed':
+                if(targetLatent) {
+                    a = (targetLatent[i] - latentVec[i]) * 0.08 * dimWeights[i]
+                      + (Math.random() - 0.5) * frameChange * 0.05 * dimWeight;
+                } else {
+                    a = (Math.random() - 0.5) * frameChange * 0.1 * dimWeight;
+                }
+                break;
+            case 'unfiltered':
+                a = (Math.random() - 0.5) * frameChange * 0.4 * dimWeight;
+                break;
+        }
+        acc[i] = a * (1.0 - stabilityFactor);
+    }
+    return acc;
+}
 
-				switch(motionMode) {
-					case 'smooth':
-						a = (Math.random() - 0.5) * frameChange * 0.15 * dimWeight;
-						break;
-					case 'organic':
-						let noiseVal = noise1D(i * 0.5 + noiseOffset) * 2 - 1;
-						a = noiseVal * frameChange * 0.2 * dimWeight;
-						break;
-					case 'directed':
-						if(targetLatent) {
-							a = (targetLatent[i] - currentLatent[i]) * 0.08 * dimWeights[i]
-							  + (Math.random() - 0.5) * frameChange * 0.05 * dimWeight;
-						} else {
-							a = (Math.random() - 0.5) * frameChange * 0.1 * dimWeight;
-						}
-						break;
-					case 'unfiltered':
-						a = (Math.random() - 0.5) * frameChange * 0.4 * dimWeight;
-						break;
-				}
+function applyAcceleration(latentVec, velocityVec, acc) {
+    let maxVel = motionMode === 'unfiltered' ? 0.8 : 0.4;
+    let mom    = motionMode === 'unfiltered' ? 0.6 : momentum;
 
-				acc[i] = a * (1.0 - stabilityFactor);
-			}
-			return acc;
-		}
+    for(let i = 0; i < latentVec.length; i++){
+        if(motionMode === 'unfiltered') velocityVec[i] *= 0.6;
+        velocityVec[i] = velocityVec[i] * mom + acc[i];
+        velocityVec[i] = Math.max(-maxVel, Math.min(maxVel, velocityVec[i]));
+        latentVec[i] += velocityVec[i];
+        latentVec[i] = Math.max(-3.5, Math.min(3.5, latentVec[i]));
+    }
+}
 
 		function applyAcceleration(acc) {
 			let maxVel = motionMode === 'unfiltered' ? 0.8 : 0.4;
@@ -700,20 +717,24 @@
 			}
 		}
 
-		function stepMotion() {
-			let acc = computeAcceleration();
-			applyAcceleration(acc);
+	function stepMotion() {
+    noiseOffset += 0.02;
 
-			if(multiMode) {
-				for(let row = 0; row < tileCount; row++){
-					for(let col = 0; col < tileCount; col++){
-						drawTile(tileGrid[row][col], null, row, col);
-					}
-				}
-			} else {
-				drawLatentWithOffset(currentLatent);
-			}
-		}
+    if(multiMode) {
+        for(let row = 0; row < tileCount; row++){
+            for(let col = 0; col < tileCount; col++){
+                let tile = tileGrid[row][col];
+                let acc = computeAcceleration(tile.latent);
+                applyAcceleration(tile.latent, tile.velocity, acc);
+                drawTile(tile, null, row, col);
+            }
+        }
+    } else {
+        let acc = computeAcceleration(currentLatent);
+        applyAcceleration(currentLatent, velocity, acc);
+        drawLatentWithOffset(currentLatent);
+    }
+}
 
 		let recordingVideo = false;
 		let globalAudio = new Audio();
@@ -945,7 +966,7 @@
 				console.log('Training complete!');
 
 				if(n > 1) {
-					setupTileGrid(n);
+					id(n);
 					let centreRow = Math.floor(n / 2);
 					let centreCol = Math.floor(n / 2);
 					currentLatent = [...arrayify(encoder.run(allTilePixels[centreRow*n + centreCol]))];
