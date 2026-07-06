@@ -263,7 +263,7 @@
 	<!-- ── Global Latent Offset ── -->
 	<div class="section">
 		<h3>Global Latent Offset</h3>
-		<small>Added to every dimension of the shared latent root before decoding. Values are additive with animation. Use "Apply &amp; Redraw" to push a one-shot render, or leave animation running for live effect.</small>
+		<small>Added to every dimension of every tile's own latent before decoding. Values are additive with animation. Use "Apply &amp; Redraw" to push a one-shot render, or leave animation running for live effect.</small>
 		<div class="latent-offset-grid" id="globalOffsetGrid"></div>
 		<div style="margin-top:10px; display:flex; gap:8px; flex-wrap:wrap;">
 			<button id="applyGlobalOffset">Apply &amp; Redraw</button>
@@ -274,7 +274,7 @@
 	<!-- ── Per-Tile Latent Offset ── -->
 	<div class="section" id="tileOffsetSection">
 		<h3>Per-Tile Latent Offset</h3>
-		<small>Each tile's effective latent = shared root + global offset + frozen spatial jitter + this per-tile offset. Values are additive per tile.</small>
+		<small>Each tile now evolves its own latent independently (seeded from its own encoded pixels, or the shared root + frozen jitter if no per-tile encoding is available). Effective latent = tile's own evolving latent + global offset + this per-tile offset.</small>
 		<div id="tileOffsetContainer"></div>
 	</div>
 	
@@ -304,7 +304,7 @@
 				</select>
 				<small id="tileSizeNote">Canvas: 16×16px (256px display)</small>
 			</div>
-			<small>⚠️ Higher resolutions split the image into 16×16 tiles. All tiles animate with a shared latent root so the image moves coherently.</small>
+			<small>⚠️ Higher resolutions split the image into 16×16 tiles. Each tile now animates from its own latent, seeded from its own encoded pixels, so tiles can diverge over time instead of moving in lockstep.</small>
 			<hr style="margin: 15px 0; border: 1px solid rgba(255,255,255,0.2);">
 
 			<div class="tuning-row">
@@ -362,7 +362,7 @@
 			learningRate:0.03
 		});
 
-		// --- Shared animation state ---
+		// --- Shared animation state (single-tile mode) ---
 		let currentLatent = [];
 		let velocity = new Array(16).fill(0);
 		let targetLatent = null;
@@ -460,27 +460,24 @@
 		}
 
 		// ── Compute effective latent for a tile ──
-		// effectiveLatent[i] = currentLatent[i] + globalOffset[i] + frozenTileJitter[i] + perTileOffset[i]
+		// Each tile now owns its own evolving `latent` array (see tileGrid entries).
+		// effectiveLatent[i] = tile.latent[i] + globalOffset[i] + perTileOffset[i]
 		function getEffectiveLatent(tile, row, col) {
 			let key = `${row}_${col}`;
 			let perTile = tileLatentOffsets[key] || new Array(16).fill(0);
-			return currentLatent.map((v, i) =>
+			return tile.latent.map((v, i) =>
 				Math.max(-3.5, Math.min(3.5,
-					v + globalLatentOffset[i] + tile.tileOffset[i] + perTile[i]
+					v + globalLatentOffset[i] + perTile[i]
 				))
 			);
 		}
 
 		// ── Compute effective latent for single-tile mode ──
-		function getEffectiveLatent(tile, row, col) {
-    let key = `${row}_${col}`;
-    let perTile = tileLatentOffsets[key] || new Array(16).fill(0);
-    return tile.latent.map((v, i) =>
-        Math.max(-3.5, Math.min(3.5,
-            v + globalLatentOffset[i] + tile.tileOffset[i] + perTile[i]
-        ))
-    );
-}
+		function getEffectiveLatentSingle() {
+			return currentLatent.map((v, i) =>
+				Math.max(-3.5, Math.min(3.5, v + globalLatentOffset[i]))
+			);
+		}
 		
 		encoder.fromJSON(generalNet["encoder"]);
 		decoder.fromJSON(generalNet["decoder"]);
@@ -536,6 +533,7 @@
 
 			tileGrid = [];
 			let tileDisplayPx = Math.floor(256 / n);
+			let baseLatent = currentLatent.length ? currentLatent : new Array(16).fill(0);
 
 			for(let row = 0; row < n; row++) {
 				tileGrid[row] = [];
@@ -553,12 +551,17 @@
 					tileLatentOffsets[`${row}_${col}`] = new Array(16).fill(0);
 
 					tileGrid[row][col] = {
-    canvas: tc,
-    ctx: tc.getContext('2d'),
-    tileOffset: tileOffset,
-    latent: currentLatent.length ? [...currentLatent] : new Array(16).fill(0).map(()=>(Math.random()-0.5)*2),
-    velocity: new Array(16).fill(0)
-};
+						canvas: tc,
+						ctx: tc.getContext('2d'),
+						tileOffset: tileOffset,
+						// Each tile owns its own latent + velocity + (optional) target from here on,
+						// so it can diverge frame-to-frame instead of mirroring the shared root.
+						latent: baseLatent.map((v, i) => v + tileOffset[i]),
+						velocity: new Array(16).fill(0),
+						targetLatent: null,
+						// distinct phase so 'organic' noise doesn't move every tile in lockstep
+						noisePhase: Math.random() * 1000
+					};
 				}
 			}
 
@@ -578,10 +581,9 @@
 					d[j++] = 255;
 				}
 			} else {
-				 let base = tile.latent || currentLatent;
-    let effectiveLatent = (row !== undefined && col !== undefined)
-        ? getEffectiveLatent(tile, row, col)
-        : base.map((v, i) => Math.max(-3.5, Math.min(3.5, v + tile.tileOffset[i])));
+				let effectiveLatent = (row !== undefined && col !== undefined)
+					? getEffectiveLatent(tile, row, col)
+					: (tile.latent || currentLatent).map((v, i) => Math.max(-3.5, Math.min(3.5, v)));
 				let decoded = arrayify(decoder.run(effectiveLatent));
 				let j = 0;
 				for(let i = 0; i < decoded.length; i += 3){
@@ -659,82 +661,75 @@
 			drawLatentWithOffset(latentSpace);
 		}
 
-	function computeAcceleration(latentVec) {
-    let acc = new Array(16).fill(0);
-    for(let i = 0; i < 16; i++){
-        let a = 0;
-        let dimWeight = dimWeights[i];
-        let stabilityFactor = i < 4 ? structureStability : 0;
+		// ── Acceleration/velocity are now computed per-latent-owner (a tile, or the
+		// single-tile canvas) rather than against one shared currentLatent/velocity.
+		// `latent`/`targetLat` are that owner's own arrays; `noisePhase` decorrelates
+		// the 'organic' noise so tiles don't all wobble in lockstep.
+		function computeAcceleration(latent, targetLat, noisePhase) {
+			let acc = new Array(16).fill(0);
 
-        switch(motionMode) {
-            case 'smooth':
-                a = (Math.random() - 0.5) * frameChange * 0.15 * dimWeight;
-                break;
-            case 'organic':
-                let noiseVal = noise1D(i * 0.5 + noiseOffset) * 2 - 1;
-                a = noiseVal * frameChange * 0.2 * dimWeight;
-                break;
-            case 'directed':
-                if(targetLatent) {
-                    a = (targetLatent[i] - latentVec[i]) * 0.08 * dimWeights[i]
-                      + (Math.random() - 0.5) * frameChange * 0.05 * dimWeight;
-                } else {
-                    a = (Math.random() - 0.5) * frameChange * 0.1 * dimWeight;
-                }
-                break;
-            case 'unfiltered':
-                a = (Math.random() - 0.5) * frameChange * 0.4 * dimWeight;
-                break;
-        }
-        acc[i] = a * (1.0 - stabilityFactor);
-    }
-    return acc;
-}
+			for(let i = 0; i < 16; i++){
+				let a = 0;
+				let dimWeight = dimWeights[i];
+				let stabilityFactor = i < 4 ? structureStability : 0;
 
-function applyAcceleration(latentVec, velocityVec, acc) {
-    let maxVel = motionMode === 'unfiltered' ? 0.8 : 0.4;
-    let mom    = motionMode === 'unfiltered' ? 0.6 : momentum;
+				switch(motionMode) {
+					case 'smooth':
+						a = (Math.random() - 0.5) * frameChange * 0.15 * dimWeight;
+						break;
+					case 'organic':
+						let noiseVal = noise1D(i * 0.5 + noiseOffset + noisePhase) * 2 - 1;
+						a = noiseVal * frameChange * 0.2 * dimWeight;
+						break;
+					case 'directed':
+						if(targetLat) {
+							a = (targetLat[i] - latent[i]) * 0.08 * dimWeights[i]
+							  + (Math.random() - 0.5) * frameChange * 0.05 * dimWeight;
+						} else {
+							a = (Math.random() - 0.5) * frameChange * 0.1 * dimWeight;
+						}
+						break;
+					case 'unfiltered':
+						a = (Math.random() - 0.5) * frameChange * 0.4 * dimWeight;
+						break;
+				}
 
-    for(let i = 0; i < latentVec.length; i++){
-        if(motionMode === 'unfiltered') velocityVec[i] *= 0.6;
-        velocityVec[i] = velocityVec[i] * mom + acc[i];
-        velocityVec[i] = Math.max(-maxVel, Math.min(maxVel, velocityVec[i]));
-        latentVec[i] += velocityVec[i];
-        latentVec[i] = Math.max(-3.5, Math.min(3.5, latentVec[i]));
-    }
-}
+				acc[i] = a * (1.0 - stabilityFactor);
+			}
+			return acc;
+		}
 
-		function applyAcceleration(acc) {
+		function applyAcceleration(latent, vel, acc) {
 			let maxVel = motionMode === 'unfiltered' ? 0.8 : 0.4;
 			let mom    = motionMode === 'unfiltered' ? 0.6 : momentum;
 
-			for(let i = 0; i < currentLatent.length; i++){
-				if(motionMode === 'unfiltered') velocity[i] *= 0.6;
-				velocity[i] = velocity[i] * mom + acc[i];
-				velocity[i] = Math.max(-maxVel, Math.min(maxVel, velocity[i]));
-				currentLatent[i] += velocity[i];
-				currentLatent[i] = Math.max(-3.5, Math.min(3.5, currentLatent[i]));
+			for(let i = 0; i < latent.length; i++){
+				if(motionMode === 'unfiltered') vel[i] *= 0.6;
+				vel[i] = vel[i] * mom + acc[i];
+				vel[i] = Math.max(-maxVel, Math.min(maxVel, vel[i]));
+				latent[i] += vel[i];
+				latent[i] = Math.max(-3.5, Math.min(3.5, latent[i]));
 			}
 		}
 
-	function stepMotion() {
-    noiseOffset += 0.02;
+		function stepMotion() {
+			noiseOffset += 0.02;
 
-    if(multiMode) {
-        for(let row = 0; row < tileCount; row++){
-            for(let col = 0; col < tileCount; col++){
-                let tile = tileGrid[row][col];
-                let acc = computeAcceleration(tile.latent);
-                applyAcceleration(tile.latent, tile.velocity, acc);
-                drawTile(tile, null, row, col);
-            }
-        }
-    } else {
-        let acc = computeAcceleration(currentLatent);
-        applyAcceleration(currentLatent, velocity, acc);
-        drawLatentWithOffset(currentLatent);
-    }
-}
+			if(multiMode) {
+				for(let row = 0; row < tileCount; row++){
+					for(let col = 0; col < tileCount; col++){
+						let tile = tileGrid[row][col];
+						let acc = computeAcceleration(tile.latent, tile.targetLatent, tile.noisePhase);
+						applyAcceleration(tile.latent, tile.velocity, acc);
+						drawTile(tile, null, row, col);
+					}
+				}
+			} else {
+				let acc = computeAcceleration(currentLatent, targetLatent, 0);
+				applyAcceleration(currentLatent, velocity, acc);
+				drawLatentWithOffset(currentLatent);
+			}
+		}
 
 		let recordingVideo = false;
 		let globalAudio = new Audio();
@@ -877,10 +872,15 @@ function applyAcceleration(latentVec, velocityVec, acc) {
 					velocity.fill(0);
 					targetLatent = null;
 
+					// Encode each tile's own pixel patch, so each tile starts from its
+					// own real latent instead of a jittered copy of the centre tile.
 					for(let row=0; row<n; row++){
 						for(let col=0; col<n; col++){
 							let pixels = extractTilePixels(imageData, col, row, n*16);
 							blitPixelsToCanvas(pixels, tileGrid[row][col].ctx, tileGrid[row][col].canvas);
+							tileGrid[row][col].latent = [...arrayify(encoder.run(pixels))];
+							tileGrid[row][col].velocity.fill(0);
+							tileGrid[row][col].targetLatent = null;
 						}
 					}
 				}
@@ -966,14 +966,19 @@ function applyAcceleration(latentVec, velocityVec, acc) {
 				console.log('Training complete!');
 
 				if(n > 1) {
-					id(n);
+					setupTileGrid(n);
 					let centreRow = Math.floor(n / 2);
 					let centreCol = Math.floor(n / 2);
 					currentLatent = [...arrayify(encoder.run(allTilePixels[centreRow*n + centreCol]))];
 					velocity.fill(0);
+					// Reuse the per-tile latents already computed during training so each
+					// tile starts from its own real encoding, not a jittered shared root.
 					for(let row=0; row<n; row++){
 						for(let col=0; col<n; col++){
 							blitPixelsToCanvas(allTilePixels[row*n+col], tileGrid[row][col].ctx, tileGrid[row][col].canvas);
+							tileGrid[row][col].latent = tileLatents[row*n+col];
+							tileGrid[row][col].velocity.fill(0);
+							tileGrid[row][col].targetLatent = null;
 						}
 					}
 				} else {
@@ -1044,9 +1049,15 @@ function applyAcceleration(latentVec, velocityVec, acc) {
 			velocity.fill(0);
 			targetLatent = null;
 			if(multiMode) {
-				for(let row=0;row<tileCount;row++)
-					for(let col=0;col<tileCount;col++)
-						drawTile(tileGrid[row][col], null, row, col);
+				for(let row=0;row<tileCount;row++){
+					for(let col=0;col<tileCount;col++){
+						let tile = tileGrid[row][col];
+						tile.latent = currentLatent.map((v,i)=>v+tile.tileOffset[i]);
+						tile.velocity.fill(0);
+						tile.targetLatent = null;
+						drawTile(tile, null, row, col);
+					}
+				}
 			} else {
 				drawLatentWithOffset(currentLatent);
 			}
@@ -1057,9 +1068,15 @@ function applyAcceleration(latentVec, velocityVec, acc) {
 			velocity.fill(0);
 			targetLatent = null;
 			if(multiMode) {
-				for(let row=0;row<tileCount;row++)
-					for(let col=0;col<tileCount;col++)
-						drawTile(tileGrid[row][col], null, row, col);
+				for(let row=0;row<tileCount;row++){
+					for(let col=0;col<tileCount;col++){
+						let tile = tileGrid[row][col];
+						tile.latent = currentLatent.map((v,i)=>v+tile.tileOffset[i]);
+						tile.velocity.fill(0);
+						tile.targetLatent = null;
+						drawTile(tile, null, row, col);
+					}
+				}
 			} else {
 				drawLatentWithOffset(currentLatent);
 			}
@@ -1078,6 +1095,17 @@ function applyAcceleration(latentVec, velocityVec, acc) {
 			motionMode='directed';
 			targetLatent = [];
 			for(let i=0;i<16;i++) targetLatent.push((Math.random()-0.5)*2.5);
+			// Give each tile its own random target too, so tiles head toward
+			// different destinations instead of all chasing the same one.
+			if(multiMode) {
+				for(let row=0; row<tileCount; row++){
+					for(let col=0; col<tileCount; col++){
+						let t = [];
+						for(let i=0;i<16;i++) t.push((Math.random()-0.5)*2.5);
+						tileGrid[row][col].targetLatent = t;
+					}
+				}
+			}
 			$('currentMode').textContent='Directed';
 		}
 		$('modeUnfiltered').onclick = () => { motionMode='unfiltered'; $('currentMode').textContent='Unfiltered'; }
