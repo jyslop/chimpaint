@@ -1,0 +1,1253 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Chimpaint++ By BIAtech</title>
+<style>
+
+  :root{
+    --bg:#101820;
+    --panel:rgba(28,39,51,.94);
+    --panel-2:rgba(35,48,62,.96);
+    --line:#4b6073;
+    --text:#e4edf5;
+    --text-dim:#9eafbd;
+    --sienna:#3d8dcc;
+    --sienna-bright:#62b5f0;
+    --slate:#56758f;
+    --olive:#7f9f63;
+    --danger:#e06b6b;
+    --display:"Segoe UI",Tahoma,Arial,sans-serif;
+    --body:"Segoe UI",Tahoma,Arial,sans-serif;
+    --mono:sans-serif;
+  }
+
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:
+      radial-gradient(circle at 18% 8%,rgba(83,128,161,.22) 0,rgba(83,128,161,.08) 18%,transparent 38%),
+      linear-gradient(180deg,#111b24 0,#172532 38%,#0d151d 100%);
+    color:var(--text);
+    font-family:var(--body);
+    line-height:1.45;
+    padding:28px 20px 80px;
+    min-height:100vh;
+    text-shadow:0 1px 0 rgba(0,0,0,.65);
+  }
+
+  .wrap{max-width:1120px;margin:0 auto;}
+
+  header,
+  section.panel{
+    position:relative;
+    background:
+      linear-gradient(180deg,rgba(45,61,76,.97),rgba(31,44,57,.96) 48%,rgba(24,35,47,.98));
+    border:1px solid #526a7f;
+    border-radius:8px;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.12),
+      inset 0 -1px 0 rgba(0,0,0,.45),
+      0 2px 5px rgba(0,0,0,.42),
+      0 8px 20px rgba(0,0,0,.28);
+  }
+
+  header{
+    padding:34px 30px 30px;
+    margin-bottom:26px;
+    overflow:hidden;
+  }
+
+  header:before,
+  section.panel:before{
+    content:"";
+    position:absolute;
+    left:2px;right:2px;top:2px;
+    height:38%;
+    border-radius:6px 6px 0 0;
+    background:linear-gradient(180deg,rgba(255,255,255,.10),rgba(255,255,255,0));
+    pointer-events:none;
+  }
+
+  header canvas.hero{position:absolute;inset:0;width:100%;height:100%;opacity:.22;}
+  header .htext{position:relative;z-index:1;}
+
+  h1{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:2.5rem;
+    margin:0 0 6px;
+    letter-spacing:.1px;
+    color:#e8f3fb;
+  }
+
+  h1 em{
+    font-style:normal;
+    color:#67b8ed;
+    text-shadow:0 1px 0 rgba(0,0,0,.8);
+  }
+
+  header p{max-width:620px;color:#b7c8d6;margin:0;font-size:.98rem;}
+
+  h2{
+    font-family:var(--display);
+    font-weight:600;
+    font-size:1.3rem;
+    margin:0 0 4px;
+    color:#d7e8f5;
+  }
+
+  .eyebrow{
+    font-family:var(--mono);
+    font-size:.68rem;
+    letter-spacing:.14em;
+    text-transform:uppercase;
+    color:#61afe5;
+    margin:0 0 6px;
+    text-shadow:0 1px 0 rgba(0,0,0,.8);
+  }
+
+  section.panel{
+    padding:22px 24px;
+    margin-bottom:20px;
+  }
+
+  .panel-head{margin-bottom:16px;}
+  .panel-sub{color:var(--text-dim);font-size:.88rem;margin:2px 0 0;}
+
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:22px;}
+  @media (max-width:860px){.grid2{grid-template-columns:1fr;}}
+
+  label{
+    display:block;
+    font-size:.78rem;
+    color:#b6c7d5;
+    margin:12px 0 5px;
+    letter-spacing:.02em;
+  }
+  label:first-child{margin-top:0;}
+
+  input[type=text],
+  input[type=number],
+  select,
+  input[type=file]{
+    width:100%;
+    background:linear-gradient(180deg,#293947,#202e3a);
+    border:1px solid #60788b;
+    color:#e7f0f6;
+    padding:8px 10px;
+    border-radius:4px;
+    font-family:var(--body);
+    font-size:.92rem;
+    box-shadow:
+      inset 0 1px 2px rgba(0,0,0,.45),
+      0 1px 0 rgba(255,255,255,.06);
+  }
+
+  input[type=text]:hover,
+  input[type=number]:hover,
+  select:hover,
+  input[type=file]:hover{
+    border-color:#6f9ab8;
+  }
+
+  input[type=text]:focus,
+  input[type=number]:focus,
+  select:focus{
+    outline:none;
+    border-color:#4f9fd1;
+    box-shadow:
+      0 0 0 2px rgba(72,156,216,.22),
+      inset 0 1px 2px rgba(0,0,0,.38);
+  }
+
+  input::placeholder{color:#718493;opacity:1;}
+
+  input[type=range]{
+    width:100%;
+    accent-color:#4c9bd0;
+  }
+
+  .row{display:flex;gap:12px;align-items:flex-end;}
+  .row>div{flex:1;}
+  .charcount{
+    font-family:var(--mono);
+    font-size:.72rem;
+    color:var(--text-dim);
+    text-align:right;
+    margin-top:3px;
+  }
+  .charcount.over{color:var(--danger);}
+
+  button{
+    font-family:var(--body);
+    font-size:.88rem;
+    font-weight:600;
+    padding:8px 16px;
+    border-radius:4px;
+    border:1px solid #2b668f;
+    background:
+      linear-gradient(180deg,#4e9bd0 0,#367fb0 46%,#286a99 50%,#327ca9 100%);
+    color:#fff;
+    cursor:pointer;
+    letter-spacing:.01em;
+    text-shadow:0 -1px 1px rgba(0,0,0,.8);
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.18),
+      inset 0 -1px 0 rgba(0,0,0,.35),
+      0 1px 2px rgba(0,0,0,.35);
+  }
+
+  button:hover{
+    background:linear-gradient(180deg,#67b5e6 0,#4896c9 46%,#347eaf 50%,#438fbf 100%);
+    border-color:#4b91bb;
+  }
+
+  button:active{
+    background:linear-gradient(180deg,#286b98,#397fa9);
+    box-shadow:inset 0 2px 3px rgba(0,0,0,.45);
+  }
+
+  button:disabled{opacity:.55;cursor:not-allowed;}
+  button.ghost{
+    background:linear-gradient(180deg,#354957,#293944);
+    color:#d7e5ef;
+    border-color:#62798a;
+    text-shadow:0 1px 0 rgba(0,0,0,.75);
+  }
+  button.ghost:hover{
+    border-color:#7196af;
+    background:linear-gradient(180deg,#405565,#304452);
+  }
+
+  button.slate{
+    background:linear-gradient(180deg,#617f97,#49677d 50%,#3a5367);
+    border-color:#536e82;
+    color:#fff;
+  }
+  button.slate:hover{filter:brightness(1.12);}
+  button.small{padding:5px 10px;font-size:.76rem;}
+  .btnrow{display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;}
+
+  .examples{
+    margin-top:16px;
+    display:flex;
+    flex-direction:column;
+    gap:8px;
+    max-height:330px;
+    overflow-y:auto;
+    padding:2px;
+  }
+
+  .example{
+    display:flex;
+    align-items:center;
+    gap:10px;
+    background:linear-gradient(180deg,rgba(49,66,80,.96),rgba(34,48,60,.96));
+    border:1px solid #5a7183;
+    border-radius:5px;
+    padding:6px 8px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08),0 1px 2px rgba(0,0,0,.28);
+  }
+
+  .example img{
+    width:44px;
+    height:44px;
+    object-fit:cover;
+    border-radius:3px;
+    border:1px solid #617b8e;
+    box-shadow:0 1px 2px rgba(0,0,0,.45);
+  }
+
+  .example .cap{flex:1;font-size:.82rem;color:#d5e3ed;}
+  .example .cap .p{color:var(--text-dim);font-family:var(--mono);font-size:.7rem;}
+  .example button{padding:4px 8px;font-size:.7rem;}
+  .empty-note{color:var(--text-dim);font-size:.85rem;font-style:italic;padding:6px 2px;}
+
+  .statusline{
+    font-family:var(--mono);
+    font-size:.8rem;
+    color:var(--text-dim);
+    margin-top:10px;
+  }
+  .statusline b{color:#62b4e9;font-weight:600;}
+
+  canvas#lossChart{
+    width:100%;
+    height:90px;
+    background:linear-gradient(180deg,#1d2a35,#16222c);
+    border:1px solid #5d7487;
+    border-radius:4px;
+    margin-top:12px;
+    box-shadow:inset 0 1px 3px rgba(0,0,0,.45);
+  }
+
+  .canvasrow{display:flex;gap:26px;flex-wrap:wrap;align-items:flex-start;}
+  .canvasbox{text-align:center;}
+  .canvasbox canvas{
+    background:#111820;
+    border-radius:4px;
+    border:1px solid #5d7487;
+    box-shadow:
+      0 1px 3px rgba(0,0,0,.45),
+      inset 0 1px 0 rgba(255,255,255,.08);
+    image-rendering:pixelated;
+  }
+  .canvasbox .lbl{
+    font-family:var(--mono);
+    font-size:.7rem;
+    color:var(--text-dim);
+    margin-top:6px;
+    letter-spacing:.04em;
+  }
+
+  .pill{
+    display:inline-block;
+    font-family:var(--mono);
+    font-size:.68rem;
+    background:linear-gradient(180deg,#354957,#273945);
+    border:1px solid #61798b;
+    border-radius:10px;
+    padding:2px 9px;
+    color:#b4c5d2;
+    margin-left:6px;
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.08);
+  }
+
+  .toast{
+    position:fixed;
+    bottom:22px;
+    left:50%;
+    transform:translateX(-50%);
+    background:linear-gradient(180deg,rgba(48,64,78,.98),rgba(30,43,54,.98));
+    border:1px solid #648096;
+    color:#dbe8f1;
+    padding:10px 18px;
+    border-radius:5px;
+    font-size:.85rem;
+    opacity:0;
+    transition:opacity .25s ease;
+    pointer-events:none;
+    z-index:50;
+    box-shadow:
+      inset 0 1px 0 rgba(255,255,255,.12),
+      0 3px 12px rgba(0,0,0,.5);
+  }
+
+  .toast.show{opacity:1;}
+
+  hr.hair{
+    border:none;
+    border-top:1px solid #52697b;
+    border-bottom:1px solid rgba(255,255,255,.07);
+    margin:18px 0;
+  }
+
+  .note{color:var(--text-dim);font-size:.8rem;}
+
+  ::selection{
+    background:#3e82b1;
+    color:#fff;
+    text-shadow:none;
+  }
+
+  ::-webkit-scrollbar{width:12px;height:12px;}
+  ::-webkit-scrollbar-track{
+    background:linear-gradient(90deg,#1b2731,#253642);
+    border-left:1px solid #405665;
+  }
+
+  ::-webkit-scrollbar-thumb{
+    border:1px solid #557083;
+    border-radius:6px;
+    background:linear-gradient(90deg,#668ba4,#426c87 48%,#5b7f96);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.12);
+  }
+
+  ::-webkit-scrollbar-thumb:hover{
+    background:linear-gradient(90deg,#789eb7,#5280a0 48%,#6e93aa);
+  }
+
+</style>
+</head>
+<script src="monky.js"></script>
+<body>
+<div class="wrap">
+
+  <header>
+    <div class="htext">
+      <img src="logo.png" width="200" height="auto">
+      <p>Show it some images along with some captions. Monky himself will bring your visions to life and hand paint them with splotches. No VAE, no diffusion, just a differentiable 2D renderer from end to end.</p>
+    </div>
+  </header>
+
+  <section class="panel">
+    <div class="panel-head">
+      <p class="eyebrow">Training set</p>
+      <h2>Teach your chimp</h2>
+      <p class="panel-sub">For speed and efficiency, your images are rescaled to 128x128. Prompts are limited to 64 characters.</p>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <label for="imgFile">Image</label>
+        <input type="file" id="imgFile" accept="image/*">
+        <label for="capText">Caption / prompt</label>
+        <input type="text" id="capText" maxlength="64" placeholder="e.g monky in a video game">
+        <div class="charcount" id="capCount">0 / 64</div>
+        <div class="btnrow">
+          <button id="addExampleBtn">Add to training set</button>
+          <button class="ghost" id="clearSetBtn">Clear all</button>
+        </div>
+        <div class="note" style="margin-top:8px;">Datasets are not stored. Only models.</div>
+      </div>
+      <div>
+        <div class="examples" id="examplesList">
+          <div class="empty-note">No training examples yet.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <p class="eyebrow">Network</p>
+      <h2>Shape &amp; train</h2>
+      <p class="panel-sub">Pixel RGB based error values & color + alpha shifting</p>
+    </div>
+
+    <div class="grid2">
+      <div>
+        <div class="row">
+          <div>
+            <label for="numCircles">Number of splotches</label>
+            <input type="number" id="numCircles" min="6" max="1000" value="256">
+          </div>
+          <div>
+            <label for="bgSelect">Canvas base</label>
+            <select id="bgSelect">
+              <option value="#ffffff">White</option>
+              <option value="#0e0d0b">Black</option>
+              <option value="#e9e1cd">Cream</option>
+            </select>
+          </div>
+        </div>
+        <div class="btnrow">
+          <button class="ghost" id="rebuildBtn">Build / reset network</button>
+        </div>
+        <hr class="hair">
+        <div class="row">
+          <div>
+            <label for="epochsInput">Epochs</label>
+            <input type="number" id="epochsInput" min="1" max="2000" value="60">
+          </div>
+          <div>
+            <label for="lrInput">Learning rate</label>
+            <input type="number" id="lrInput" min="0.01" max="1.2" step="0.01" value="0.35">
+          </div>
+        </div>
+        <div class="btnrow">
+          <button id="trainBtn">Start training</button>
+          <button class="ghost" id="stopBtn" disabled>Stop</button>
+        </div>
+        <div class="statusline" id="statusLine">Network not built yet.</div>
+        <canvas id="lossChart"></canvas>
+      </div>
+
+      <div>
+        <label for="previewPrompt">Live preview prompt (redrawn after every iteration)</label>
+        <input type="text" id="previewPrompt" maxlength="64" placeholder="type something to watch it learn">
+        <div class="charcount" id="prevCount">0 / 64</div>
+        <div class="canvasrow" style="margin-top:14px;">
+          <div class="canvasbox">
+            <canvas id="previewCanvas" width="128" height="128"></canvas>
+            <div class="lbl">TRAINING PREVIEW</div>
+          </div>
+        </div>
+        <hr class="hair">
+        <label>Model persistence <span class="pill">stored in this browser</span></label>
+        <div class="btnrow">
+          <button class="slate small" id="saveModelBtn">Save trained model</button>
+          <button class="ghost small" id="loadModelBtn">Load saved model</button>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="panel">
+    <div class="panel-head">
+      <p class="eyebrow">Generation</p>
+      <h2>Paint from a prompt</h2>
+      <p class="panel-sub">See what your chimp has learned or already knows.</p>
+    </div>
+
+    <label for="genPrompt">Prompt</label>
+    <input type="text" id="genPrompt" maxlength="64" placeholder="a 64-character description">
+    <div class="charcount" id="genCount">0 / 64</div>
+
+    <div class="row" style="margin-top:10px;">
+      <div>
+        <label for="posterizeLevels">Posterize levels <span class="pill" id="postVal">8</span></label>
+        <input type="range" id="posterizeLevels" min="2" max="32" value="8">
+      </div>
+      <div>
+        <label for="outRes">Output size</label>
+        <select id="outRes">
+          <option value="128">128 × 128</option>
+          <option value="256" selected>256 × 256</option>
+          <option value="384">384 × 384</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="btnrow">
+      <button id="genBtn">Paint it</button>
+      <button class="slate small" id="animateBtn">Animate</button>
+      <button class="ghost small" id="stopAnimBtn" disabled>Stop animation</button>
+      <button class="ghost small" id="downloadBtn">Download PNG</button>
+    </div>
+
+    <div class="canvasrow" style="margin-top:16px;">
+      <div class="canvasbox">
+        <canvas id="outCanvas" width="256" height="256"></canvas>
+        <div class="lbl">OUTPUT</div>
+      </div>
+    </div>
+  </section>
+
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+
+let TRAIN_RES = 128; //FUCK
+let SEQ_LEN   = 64;  //no
+let EMB_DIM   = 12;
+let H1 = 192, H2 = 128;
+let VOCAB = 96;       
+
+function randn(){
+  let u=0,v=0; while(u===0)u=Math.random(); while(v===0)v=Math.random();
+  return Math.sqrt(-2*Math.log(u))*Math.cos(2*Math.PI*v);
+}
+function shuffle(arr){
+  for(let i=arr.length-1;i>0;i--){ let j=(Math.random()*(i+1))|0; [arr[i],arr[j]]=[arr[j],arr[i]]; }
+  return arr;
+}
+function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
+function toast(msg){
+  let t=document.getElementById('toast');
+  t.textContent=msg; t.classList.add('show');
+  clearTimeout(toast._h);
+  toast._h=setTimeout(()=>t.classList.remove('show'),2400);
+}
+function hexToRgb(hex){
+  let v=hex.replace('#','');
+  return { r: parseInt(v.slice(0,2),16), g: parseInt(v.slice(2,4),16), b: parseInt(v.slice(4,6),16) };
+}
+
+/* 
+   optimizer note: adam was tried first, but the update
+   magnitude is constant regardless of true gradient size.
+   because circle parameters are raped via sigmoid,
+   adam constant size stepping freezes parameters. plain momentum SGD
+   takes smaller steps as the true gradient saturates, 
+   so it doesn't fall into that trap. tested and researched at faucilabs
+*/
+function sgdMomentum(param, grad, velocity, lr, momentum=0.9){
+  for(let i=0;i<param.length;i++){
+    velocity[i] = momentum*velocity[i] - lr*grad[i];
+    param[i] += velocity[i];
+  }
+}
+
+class Dense{
+  constructor(inSize,outSize,activation='linear'){
+    this.inSize=inSize; this.outSize=outSize; this.activation=activation;
+    let scale = Math.sqrt(2/inSize);
+    this.W = new Float64Array(inSize*outSize);
+    for(let i=0;i<this.W.length;i++) this.W[i]=randn()*scale;
+    this.b = new Float64Array(outSize);
+    this.dW = new Float64Array(inSize*outSize);
+    this.db = new Float64Array(outSize);
+    this.vW = new Float64Array(inSize*outSize); // momentum buffers
+    this.vb = new Float64Array(outSize);
+  }
+  forward(x){
+    this.x = x;
+    let z = new Float64Array(this.outSize);
+    let inSize=this.inSize, outSize=this.outSize, W=this.W;
+    for(let o=0;o<outSize;o++){
+      let sum = this.b[o];
+      for(let i=0;i<inSize;i++) sum += x[i]*W[i*outSize+o];
+      z[o]=sum;
+    }
+    this.z = z;
+    if(this.activation==='relu'){
+      //leaky ReLU 
+      let y=new Float64Array(outSize);
+      for(let o=0;o<outSize;o++) y[o]= z[o]>0? z[o]:0.05*z[o];
+      this.y=y; return y;
+    }
+    this.y=z; return z;
+  }
+  backward(dy){
+    let inSize=this.inSize, outSize=this.outSize, W=this.W;
+    let dz;
+    if(this.activation==='relu'){
+      dz=new Float64Array(outSize);
+      for(let o=0;o<outSize;o++) dz[o] = this.z[o]>0 ? dy[o] : 0.05*dy[o];
+    } else dz = dy;
+    let dx = new Float64Array(inSize);
+    for(let o=0;o<outSize;o++){
+      this.db[o]+=dz[o];
+      let dzo = dz[o];
+      for(let i=0;i<inSize;i++){
+        this.dW[i*outSize+o]+= this.x[i]*dzo;
+        dx[i]+= W[i*outSize+o]*dzo;
+      }
+    }
+    return dx;
+  }
+  step(lr){
+    sgdMomentum(this.W,this.dW,this.vW,lr);
+    sgdMomentum(this.b,this.db,this.vb,lr);
+    this.dW.fill(0); this.db.fill(0);
+  }
+}
+
+class Embedding{
+  constructor(vocab,dim){
+    this.vocab=vocab; this.dim=dim;
+    this.table=new Float64Array(vocab*dim);
+    for(let i=0;i<this.table.length;i++) this.table[i]=randn()*0.1;
+    this.dTable=new Float64Array(vocab*dim);
+    this.v=new Float64Array(vocab*dim); //momentum buffer
+  }
+  forward(indices){
+    this.indices=indices;
+    let dim=this.dim;
+    let out=new Float64Array(indices.length*dim);
+    for(let p=0;p<indices.length;p++){
+      let row=indices[p]*dim;
+      for(let d=0;d<dim;d++) out[p*dim+d]=this.table[row+d];
+    }
+    return out;
+  }
+  backward(dOut){
+    let dim=this.dim;
+    for(let p=0;p<this.indices.length;p++){
+      let row=this.indices[p]*dim;
+      for(let d=0;d<dim;d++) this.dTable[row+d]+=dOut[p*dim+d];
+    }
+  }
+  step(lr){
+    sgdMomentum(this.table,this.dTable,this.v,lr);
+    this.dTable.fill(0);
+  }
+}
+
+
+let MIN_W_FRAC=0.03, MAX_W_FRAC=0.55;
+let MIN_S=0.06, MAX_S=0.55;
+
+function sigmoid(x){ return 1/(1+Math.exp(-x)); }
+
+function paramsFromZ(z, numCircles, W, H){
+  let P = new Array(numCircles);
+  for(let k=0;k<numCircles;k++){
+    let o=k*8;
+    let cxN=sigmoid(z[o+0]), cyN=sigmoid(z[o+1]), wN=sigmoid(z[o+2]), hN=sigmoid(z[o+3]),
+          sN=sigmoid(z[o+4]), rN=sigmoid(z[o+5]), gN=sigmoid(z[o+6]), bN=sigmoid(z[o+7]);
+    P[k] = {
+      cx: cxN*W, cy: cyN*H,
+      w: (MIN_W_FRAC+wN*(MAX_W_FRAC-MIN_W_FRAC))*W,
+      h: (MIN_W_FRAC+hN*(MAX_W_FRAC-MIN_W_FRAC))*H,
+      s: MIN_S+sN*(MAX_S-MIN_S),
+      r: rN, g: gN, b: bN,
+      _sig: [cxN,cyN,wN,hN,sN,rN,gN,bN]
+    };
+  }
+  return P;
+}
+
+function gradParamsToZ(P, grads, W, H){
+  let dz = new Float64Array(P.length*8);
+  let dWfrac = MAX_W_FRAC-MIN_W_FRAC, dS = MAX_S-MIN_S;
+  for(let k=0;k<P.length;k++){
+    let o=k*8;
+    let [cxN,cyN,wN,hN,sN,rN,gN,bN] = P[k]._sig;
+    let g = grads[k];
+    let ds=n=>n*(1-n);
+    dz[o+0]=g.dcx*W*ds(cxN);
+    dz[o+1]=g.dcy*H*ds(cyN);
+    dz[o+2]=g.dw*W*dWfrac*ds(wN);
+    dz[o+3]=g.dh*H*dWfrac*ds(hN);
+    dz[o+4]=g.ds*dS*ds(sN);
+    dz[o+5]=g.dr*ds(rN);
+    dz[o+6]=g.dg*ds(gN);
+    dz[o+7]=g.db*ds(bN);
+  }
+  return dz;
+}
+
+class PaintNet{
+  constructor(numCircles){
+    this.numCircles=numCircles;
+    this.emb = new Embedding(VOCAB, EMB_DIM);
+    this.d1 = new Dense(SEQ_LEN*EMB_DIM, H1, 'relu');
+    this.d2 = new Dense(H1, H2, 'relu');
+    this.d3 = new Dense(H2, numCircles*8, 'linear');
+  }
+  encode(str){
+    let idx = new Array(SEQ_LEN).fill(0);
+    let s = str.slice(0, SEQ_LEN);
+    for(let i=0;i<s.length;i++){
+      let c = s.charCodeAt(i);
+      idx[i] = (c>=32 && c<=126) ? (c-31) : 1; 
+    }
+    return idx;
+  }
+  forward(str, W, H){
+    let idx = this.encode(str);
+    let e = this.emb.forward(idx);
+    let h1 = this.d1.forward(e);
+    let h2 = this.d2.forward(h1);
+    let z  = this.d3.forward(h2);
+    return paramsFromZ(z, this.numCircles, W, H);
+  }
+  backward(dz){
+    let dh2 = this.d3.backward(dz);
+    let dh1 = this.d2.backward(dh2);
+    let de  = this.d1.backward(dh1);
+    this.emb.backward(de);
+  }
+  step(lr){
+    this.d1.step(lr); this.d2.step(lr); this.d3.step(lr); this.emb.step(lr);
+  }
+  paramCount(){
+    return this.emb.table.length + this.d1.W.length+this.d1.b.length +
+           this.d2.W.length+this.d2.b.length + this.d3.W.length+this.d3.b.length;
+  }
+}
+
+function renderForward(P, W, H, bg){
+  let N = P.length;
+  let layers = [bg];
+  for(let k=0;k<N;k++){
+    let prev = layers[k];
+    let cur = new Float64Array(W*H*3);
+    let c = P[k];
+    let hw = c.w/2, hh = c.h/2, s = c.s, cx=c.cx, cy=c.cy, r=c.r, g=c.g, b=c.b;
+    for(let y=0;y<H;y++){
+      let nyBase = (y+0.5-cy)/hh;
+      for(let x=0;x<W;x++){
+        let idx = (y*W+x)*3;
+        let nx = (x+0.5-cx)/hw;
+        let ny = nyBase;
+        let d = Math.sqrt(nx*nx+ny*ny) || 1e-6;
+        let edge = 1-d;
+        let a = 1/(1+Math.exp(-edge/s));
+        cur[idx]   = prev[idx]*(1-a)+r*a;
+        cur[idx+1] = prev[idx+1]*(1-a)+g*a;
+        cur[idx+2] = prev[idx+2]*(1-a)+b*a;
+      }
+    }
+    layers.push(cur);
+  }
+  return layers;
+}
+
+function renderBackward(layers, P, target, W, H){
+  let N = P.length;
+  let total = W*H*3;
+  let dNext = new Float64Array(total);
+  let ON = layers[N];
+  let loss = 0;
+  for(let i=0;i<total;i++){
+    let diff = ON[i]-target[i];
+    loss += diff*diff;
+    dNext[i] = 2*diff/total;
+  }
+  loss /= total;
+
+  let grads = P.map(()=>({dcx:0,dcy:0,dw:0,dh:0,ds:0,dr:0,dg:0,db:0}));
+
+  for(let k=N-1;k>=0;k--){
+    let prev = layers[k];
+    let c = P[k];
+    let hw=c.w/2, hh=c.h/2, s=c.s, cx=c.cx, cy=c.cy, r=c.r, g=c.g, b=c.b, w=c.w, h=c.h;
+    let dPrev = new Float64Array(total);
+    let gk = grads[k];
+    let gdcx=0,gdcy=0,gdw=0,gdh=0,gds=0,gdr=0,gdg=0,gdb=0;
+    for(let y=0;y<H;y++){
+      let nyBase = (y+0.5-cy)/hh;
+      for(let x=0;x<W;x++){
+        let idx = (y*W+x)*3;
+        let nx = (x+0.5-cx)/hw;
+        let ny = nyBase;
+        let d = Math.sqrt(nx*nx+ny*ny) || 1e-6;
+        let edge = 1-d;
+        let a = 1/(1+Math.exp(-edge/s));
+
+        let dO0=dNext[idx], dO1=dNext[idx+1], dO2=dNext[idx+2];
+        gdr += dO0*a; gdg += dO1*a; gdb += dO2*a;
+
+        dPrev[idx]   = dO0*(1-a);
+        dPrev[idx+1] = dO1*(1-a);
+        dPrev[idx+2] = dO2*(1-a);
+
+        let dalpha = dO0*(r-prev[idx]) + dO1*(g-prev[idx+1]) + dO2*(b-prev[idx+2]);
+        let dsig = a*(1-a);
+        let dedge = dalpha*dsig/s;
+        gds += dalpha*dsig*(-edge/(s*s));
+
+        let dd = -dedge;               // edge = 1-d
+        let dnx = dd*(nx/d);
+        let dny = dd*(ny/d);
+        gdcx += dnx*(-1/hw);
+        gdcy += dny*(-1/hh);
+        gdw  += dnx*(-nx/w);
+        gdh  += dny*(-ny/h);
+      }
+    }
+    gk.dcx=gdcx; gk.dcy=gdcy; gk.dw=gdw; gk.dh=gdh; gk.ds=gds; gk.dr=gdr; gk.dg=gdg; gk.db=gdb;
+    dNext = dPrev;
+  }
+  return {loss, grads};
+}
+
+function trainStep(net, prompt, targetArr, lr, bg){
+  let W=TRAIN_RES, H=TRAIN_RES;
+  let P = net.forward(prompt, W, H);
+  let layers = renderForward(P, W, H, bg);
+  let {loss, grads} = renderBackward(layers, P, targetArr, W, H);
+  let dz = gradParamsToZ(P, grads, W, H);
+  net.backward(dz);
+  net.step(lr);
+  return loss;
+}
+
+function paintOnCanvas(ctx, P, W, H, bgHex){
+  ctx.clearRect(0,0,W,H);
+  ctx.fillStyle = bgHex;
+  ctx.fillRect(0,0,W,H);
+  for(let c of P){
+    let blurPx = c.s * ((c.w+c.h)/2) * 0.55;
+    ctx.save();
+    ctx.filter = blurPx>0.4 ? `blur(${blurPx.toFixed(2)}px)` : 'none';
+    ctx.globalAlpha = 0.92;
+    ctx.fillStyle = `rgb(${Math.round(c.r*255)},${Math.round(c.g*255)},${Math.round(c.b*255)})`;
+    ctx.beginPath();
+    ctx.ellipse(c.cx, c.cy, Math.max(c.w/2,0.5), Math.max(c.h/2,0.5), 0, 0, Math.PI*2);
+    ctx.fill();
+    ctx.restore();
+  }
+}
+function applyPosterize(ctx, W, H, levels){
+  if(levels>=48) return;
+  let id = ctx.getImageData(0,0,W,H);
+  let step = 255/(levels-1);
+  let d = id.data;
+  for(let i=0;i<d.length;i+=4){
+    d[i]   = Math.round(Math.round(d[i]/step)*step);
+    d[i+1] = Math.round(Math.round(d[i+1]/step)*step);
+    d[i+2] = Math.round(Math.round(d[i+2]/step)*step);
+  }
+  ctx.putImageData(id,0,0);
+}
+
+
+function loadImageAsTraining(file, res){
+  return new Promise((resolve, reject)=>{
+    let reader = new FileReader();
+    reader.onload = e=>{
+      let img = new Image();
+      img.onload = ()=>{
+        let c = document.createElement('canvas');
+        c.width=res; c.height=res;
+        let ctx = c.getContext('2d');
+        let scale = Math.max(res/img.width, res/img.height);
+        let sw = img.width*scale, sh = img.height*scale;
+        let dx = (res-sw)/2, dy = (res-sh)/2;
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(0,0,res,res);
+        ctx.drawImage(img, dx, dy, sw, sh);
+        let id = ctx.getImageData(0,0,res,res);
+        let arr = new Float64Array(res*res*3);
+        for(let p=0;p<res*res;p++){
+          arr[p*3]   = id.data[p*4]/255;
+          arr[p*3+1] = id.data[p*4+1]/255;
+          arr[p*3+2] = id.data[p*4+2]/255;
+        }
+        resolve({dataURL: e.target.result, arr});
+      };
+      img.onerror = reject;
+      img.src = e.target.result;
+    };
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
+function serializeNet(net){
+  return JSON.stringify({
+    numCircles: net.numCircles,
+    emb: Array.from(net.emb.table),
+    d1W: Array.from(net.d1.W), d1b: Array.from(net.d1.b),
+    d2W: Array.from(net.d2.W), d2b: Array.from(net.d2.b),
+    d3W: Array.from(net.d3.W), d3b: Array.from(net.d3.b),
+  });
+}
+function deserializeNet(json){
+  let o = JSON.parse(json);
+  let net = new PaintNet(o.numCircles);
+  net.emb.table.set(o.emb);
+  net.d1.W.set(o.d1W); net.d1.b.set(o.d1b);
+  net.d2.W.set(o.d2W); net.d2.b.set(o.d2b);
+  net.d3.W.set(o.d3W); net.d3.b.set(o.d3b);
+  return net;
+}
+
+let net = null;
+let dataset = [];     
+let training = false;
+let lossHistory = [];
+let bgArrayCache = null, bgHexCache = null;
+
+function getBgHex(){ return document.getElementById('bgSelect').value; }
+function getBgArray(){
+  let hex = getBgHex();
+  if(bgHexCache===hex && bgArrayCache) return bgArrayCache;
+  let {r,g,b} = hexToRgb(hex);
+  let arr = new Float64Array(TRAIN_RES*TRAIN_RES*3);
+  for(let p=0;p<TRAIN_RES*TRAIN_RES;p++){ arr[p*3]=r/255; arr[p*3+1]=g/255; arr[p*3+2]=b/255; }
+  bgHexCache = hex; bgArrayCache = arr;
+  return arr;
+}
+
+function charCounter(inputId, countId){
+  let inp = document.getElementById(inputId), cnt = document.getElementById(countId);
+  let update = ()=>{
+    let n = inp.value.length;
+    cnt.textContent = `${n} / 64`;
+    cnt.classList.toggle('over', n>64);
+  };
+  inp.addEventListener('input', update);
+  update();
+}
+['capText','previewPrompt','genPrompt'].forEach((id,i)=>{
+  charCounter(id, ['capCount','prevCount','genCount'][i]);
+});
+
+document.getElementById('posterizeLevels').addEventListener('input', e=>{
+  document.getElementById('postVal').textContent = e.target.value;
+});
+
+function renderExampleList(){
+  let el = document.getElementById('examplesList');
+  el.innerHTML='';
+  if(dataset.length===0){
+    el.innerHTML = '<div class="empty-note">No training examples yet.</div>';
+    return;
+  }
+  dataset.forEach((d,i)=>{
+    let row = document.createElement('div');
+    row.className='example';
+    row.innerHTML = `<img src="${d.dataURL}">
+      <div class="cap">${d.prompt}<div class="p">${d.prompt.length} chars</div></div>
+      <button class="ghost" data-i="${i}">Remove</button>`;
+    row.querySelector('button').addEventListener('click', ()=>{
+      dataset.splice(i,1);
+      renderExampleList();
+    });
+    el.appendChild(row);
+  });
+}
+
+document.getElementById('addExampleBtn').addEventListener('click', async ()=>{
+  let fileInput = document.getElementById('imgFile');
+  let cap = document.getElementById('capText').value.trim();
+  if(!fileInput.files[0]){ toast('Choose an image first.'); return; }
+  if(!cap){ toast('Add a caption for this image.'); return; }
+  try{
+    let {dataURL, arr} = await loadImageAsTraining(fileInput.files[0], TRAIN_RES);
+    dataset.push({ prompt: cap.slice(0,64), dataURL, arr });
+    renderExampleList();
+    fileInput.value=''; document.getElementById('capText').value='';
+    document.getElementById('capCount').textContent='0 / 64';
+    toast(`Added — ${dataset.length} example(s) in training set.`);
+  }catch(err){
+    console.error(err); toast('Could not read that image.');
+  }
+});
+document.getElementById('clearSetBtn').addEventListener('click', ()=>{
+  if(dataset.length && !confirm('Clear all training examples?')) return;
+  dataset=[]; renderExampleList();
+});
+
+function buildNet(){
+  let n = Math.max(6, Math.min(1000, parseInt(document.getElementById('numCircles').value)||32));
+  net = new PaintNet(n);
+  lossHistory = [];
+  drawLossChart();
+  document.getElementById('statusLine').innerHTML =
+    `Network built: <b>${n}</b> splotches, ${net.paramCount().toLocaleString()} trainable parameters.`;
+}
+document.getElementById('rebuildBtn').addEventListener('click', ()=>{
+  if(net && !confirm('This discards the current network\'s learned weights. Continue?')) return;
+  buildNet();
+});
+buildNet();
+
+function drawLossChart(){
+  let cvs = document.getElementById('lossChart');
+  let ctx = cvs.getContext('2d');
+  let w = cvs.clientWidth || 400, h = 90;
+  cvs.width = w*devicePixelRatio; cvs.height = h*devicePixelRatio;
+  ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);
+  ctx.clearRect(0,0,w,h);
+  if(lossHistory.length<2){
+    ctx.fillStyle='#b8c8d5'; ctx.font='11px sans-serif';
+    ctx.fillText('loss curve will appear here', 10, h/2);
+    return;
+  }
+  let maxL = Math.max(...lossHistory), minL = Math.min(...lossHistory);
+  let pad = 8;
+  ctx.strokeStyle = '#79b8df'; ctx.lineWidth=1.5; ctx.beginPath();
+  lossHistory.forEach((l,i)=>{
+    let x = pad + (w-2*pad)*(i/(lossHistory.length-1));
+    let norm = maxL>minL ? (l-minL)/(maxL-minL) : 0.5;
+    let y = pad + (h-2*pad)*(1-norm);
+    i===0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+  ctx.fillStyle='#b8c8d5'; ctx.font='10px sans-serif';
+  ctx.fillText(lossHistory[lossHistory.length-1].toFixed(5), w-70, 14);
+}
+
+function renderPreview(){
+  let prompt = document.getElementById('previewPrompt').value || (dataset[0]&&dataset[0].prompt) || 'a splotch';
+  let cvs = document.getElementById('previewCanvas');
+  let ctx = cvs.getContext('2d');
+  let P = net.forward(prompt, cvs.width, cvs.height);
+  paintOnCanvas(ctx, P, cvs.width, cvs.height, getBgHex());
+}
+
+async function trainLoop(epochs, lr){
+  training = true;
+  document.getElementById('trainBtn').disabled = true;
+  document.getElementById('stopBtn').disabled = false;
+  let bg = getBgArray();
+  for(let ep=0; ep<epochs && training; ep++){
+    if(dataset.length===0){ toast('Add at least one training example.'); break; }
+    let totalLoss=0;
+    let order = shuffle(dataset.map((_,i)=>i));
+    for(let i of order){
+      if(!training) break;
+      totalLoss += trainStep(net, dataset[i].prompt, dataset[i].arr, lr, bg);
+      await sleep(0);
+    }
+    lossHistory.push(totalLoss/Math.max(1,dataset.length));
+    drawLossChart();
+    document.getElementById('statusLine').innerHTML =
+      `Epoch <b>${ep+1}</b> / ${epochs} --- avg loss <b>${(totalLoss/Math.max(1,dataset.length)).toFixed(5)}</b>`;
+    renderPreview();
+    await sleep(0);
+  }
+  training = false;
+  document.getElementById('trainBtn').disabled = false;
+  document.getElementById('stopBtn').disabled = true;
+}
+
+document.getElementById('trainBtn').addEventListener('click', ()=>{
+  if(dataset.length===0){ toast('Add at least one image + caption first.'); return; }
+  let epochs = Math.max(1, parseInt(document.getElementById('epochsInput').value)||60);
+  let lr = Math.max(0.01, parseFloat(document.getElementById('lrInput').value)||0.35);
+  trainLoop(epochs, lr);
+});
+document.getElementById('stopBtn').addEventListener('click', ()=>{ training=false; });
+
+let animationFrame = 0;
+let animationTimer = 0;
+let animationRunning = false;
+let animationPrompt = '';
+let animationSource = null;
+let animationTarget = null;
+let animationStarted = 0;
+let animationDuration = 420;
+let animationStep = 0;
+
+function shiftPromptCharacters(prompt, step){
+  let chars = Array.from(prompt.slice(0,64));
+  if(chars.length===0) return 'a splotch';
+  let out = chars.slice();
+  let pos = step % out.length;
+  let code = out[pos].charCodeAt(0);
+  if(code < 32 || code > 126) code = 32;
+  let direction = ((Math.floor(step / out.length) % 2) === 0) ? 1 : -1;
+  let shifted = code + direction;
+  if(shifted > 126) shifted = 32;
+  if(shifted < 32) shifted = 126;
+  out[pos] = String.fromCharCode(shifted);
+  return out.join('');
+}
+
+function interpolateParams(a, b, t){
+  let out = new Array(a.length);
+  let clamped = Math.max(0, Math.min(1, t));
+  for(let i=0;i<a.length;i++){
+    let ca = a[i], cb = b[i];
+    out[i] = {
+      cx: ca.cx + (cb.cx-ca.cx)*clamped,
+      cy: ca.cy + (cb.cy-ca.cy)*clamped,
+      w: ca.w + (cb.w-ca.w)*clamped,
+      h: ca.h + (cb.h-ca.h)*clamped,
+      s: ca.s + (cb.s-ca.s)*clamped,
+      r: ca.r + (cb.r-ca.r)*clamped,
+      g: ca.g + (cb.g-ca.g)*clamped,
+      b: ca.b + (cb.b-ca.b)*clamped
+    };
+  }
+  return out;
+}
+
+function drawAnimatedFrame(now){
+  if(!animationRunning) return;
+  let cvs = document.getElementById('outCanvas');
+  let ctx = cvs.getContext('2d');
+  let elapsed = now - animationStarted;
+  let t = Math.min(1, elapsed / animationDuration);
+  let smooth = t*t*(3-2*t);
+  let P = interpolateParams(animationSource, animationTarget, smooth);
+  paintOnCanvas(ctx, P, cvs.width, cvs.height, getBgHex());
+  let levels = parseInt(document.getElementById('posterizeLevels').value);
+  applyPosterize(ctx, cvs.width, cvs.height, levels);
+
+  if(t >= 1){
+    animationSource = animationTarget;
+    animationStep++;
+    animationPrompt = shiftPromptCharacters(animationPrompt, animationStep);
+    animationTarget = net.forward(animationPrompt, cvs.width, cvs.height);
+    animationStarted = now;
+  }
+
+  animationFrame = requestAnimationFrame(drawAnimatedFrame);
+}
+
+function startAnimation(){
+  if(!net) return;
+  let prompt = document.getElementById('genPrompt').value.trim();
+  if(!prompt){ toast('Type a prompt to animate.'); return; }
+  let res = parseInt(document.getElementById('outRes').value);
+  let cvs = document.getElementById('outCanvas');
+  cvs.width = res;
+  cvs.height = res;
+  cancelAnimationFrame(animationFrame);
+  clearTimeout(animationTimer);
+  animationRunning = true;
+  animationPrompt = prompt;
+  animationStep = 0;
+  animationSource = net.forward(animationPrompt, res, res);
+  animationTarget = net.forward(shiftPromptCharacters(animationPrompt, 0), res, res);
+  animationStarted = performance.now();
+  document.getElementById('animateBtn').disabled = true;
+  document.getElementById('stopAnimBtn').disabled = false;
+  animationFrame = requestAnimationFrame(drawAnimatedFrame);
+}
+
+function stopAnimation(){
+  animationRunning = false;
+  cancelAnimationFrame(animationFrame);
+  clearTimeout(animationTimer);
+  document.getElementById('animateBtn').disabled = false;
+  document.getElementById('stopAnimBtn').disabled = true;
+}
+
+document.getElementById('genBtn').addEventListener('click', ()=>{
+  stopAnimation();
+  let prompt = document.getElementById('genPrompt').value.trim();
+  if(!prompt){ toast('Type a prompt to paint.'); return; }
+  let res = parseInt(document.getElementById('outRes').value);
+  let cvs = document.getElementById('outCanvas');
+  cvs.width = res; cvs.height = res;
+  let ctx = cvs.getContext('2d');
+  let P = net.forward(prompt, res, res);
+  paintOnCanvas(ctx, P, res, res, getBgHex());
+  let levels = parseInt(document.getElementById('posterizeLevels').value);
+  applyPosterize(ctx, res, res, levels);
+});
+
+document.getElementById('animateBtn').addEventListener('click', startAnimation);
+document.getElementById('stopAnimBtn').addEventListener('click', stopAnimation);
+document.getElementById('downloadBtn').addEventListener('click', ()=>{
+  let cvs = document.getElementById('outCanvas');
+  let a = document.createElement('a');
+  a.download = 'splotch-painting.png';
+  a.href = cvs.toDataURL('image/png');
+  a.click();
+});
+
+document.getElementById('saveModelBtn').addEventListener('click', async ()=>{
+  try{
+    let json = serializeNet(net);
+    let result = await window.storage.set('splotch_model', json, false);
+    if(result) toast('Model saved to this browser.');
+    else toast('Save failed: storage unavailable.');
+  }catch(err){
+    console.error(err);
+    toast('Could not save (model may be too large).');
+  }
+});
+document.getElementById('loadModelBtn').addEventListener('click', async ()=>{
+  try{
+    let result = await window.storage.get('splotch_model');
+    if(!result){ toast('No saved model found.'); return; }
+    net = deserializeNet(result.value);
+    document.getElementById('numCircles').value = net.numCircles;
+    lossHistory = []; drawLossChart();
+    document.getElementById('statusLine').innerHTML =
+      `Loaded saved network: <b>${net.numCircles}</b> splotches.`;
+    renderPreview();
+    toast('Model loaded.');
+  }catch(err){
+    console.error(err);
+    toast('No saved model found.');
+  }
+});
+
+
+(async function initLoad(){
+  try{
+    let result = await window.storage.get('splotch_model');
+    if(result){
+      net = deserializeNet(result.value);
+      document.getElementById('numCircles').value = net.numCircles;
+      document.getElementById('statusLine').innerHTML =
+        `Loaded saved network: <b>${net.numCircles}</b> splotches.`;
+      renderPreview();
+    }
+  }catch(err){ }
+})();
+
+if(Object.keys(saved).length === 5){
+net = new PaintNet(saved['numCircles']); 
+
+function toFloat64(obj) {
+  return Float64Array.from(Object.values(obj));
+}
+
+net.emb.table.set(toFloat64(saved.emb.table));
+net.d1.W.set(toFloat64(saved.d1.W));
+net.d1.b.set(toFloat64(saved.d1.b));
+net.d2.W.set(toFloat64(saved.d2.W));
+net.d2.b.set(toFloat64(saved.d2.b));
+net.d3.W.set(toFloat64(saved.d3.W));
+net.d3.b.set(toFloat64(saved.d3.b));
+}
+</script>
+</body>
+</html>
